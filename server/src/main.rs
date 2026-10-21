@@ -14,7 +14,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use futures_util::{SinkExt, StreamExt};
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_tungstenite::{accept_async, tungstenite::Message};
@@ -682,59 +682,113 @@ async fn handle_connection(
     web_root: PathBuf,
 ) -> std::io::Result<()> {
     socket.set_nodelay(true)?;
-    let head = peek_head(&mut socket).await?;
-    let mut lines = head.lines();
-    let request_line = lines.next().unwrap_or("").trim().to_string();
-    let mut parts = request_line.split_whitespace();
-    let method = parts.next().unwrap_or("GET");
-    let path = parts.next().unwrap_or("/");
 
-    let headers: HashMap<String, String> = lines
-        .filter_map(|l| l.split_once(':'))
-        .map(|(k, v)| (k.trim().to_lowercase(), v.trim().to_string()))
-        .collect();
-
-    let route = path.split('?').next().unwrap_or("/");
-
-    if route == "/ws" || route.starts_with("/ws?") {
-        // Leave the stream untouched: accept_async re-reads the upgrade request.
-        return run_socket(socket, addr, state).await;
-    }
-
-    if method != "GET" && method != "HEAD" {
-        return respond(
-            &mut socket,
-            405,
-            "text/plain; charset=utf-8",
-            b"method not allowed",
-            "",
-        )
-        .await;
-    }
-
-    if route == "/health" {
-        let (tick, time, pilots, seed) = {
-            let w = state.lock().unwrap();
-            (w.tick, w.time, w.players.len(), w.terrain.seed)
+    // One request per connection is not enough: the browser pipelines
+    // /flight_client.js straight after /, and closing with that request unread
+    // in the kernel buffer sends a reset instead of the file. Serve requests on
+    // the connection until the client closes it or goes quiet.
+    loop {
+        let head = match tokio::time::timeout(Duration::from_secs(30), peek_head(&mut socket)).await
+        {
+            Ok(head) => head?,
+            Err(_) => return Ok(()),
         };
-        let body = format!(
-            "{{\"ok\":true,\"tick\":{tick},\"sim_time\":{time:.2},\"pilots\":{pilots},\"seed\":\"{seed:#x}\",\"sim_hz\":{SIM_HZ}}}"
-        );
-        return respond(
-            &mut socket,
-            200,
-            "application/json",
-            body.as_bytes(),
-            "cache-control: no-store\r\n",
-        )
-        .await;
-    }
+        if head.trim().is_empty() {
+            return Ok(());
+        }
 
-    let gzip = headers
-        .get("accept-encoding")
-        .map(|v| v.contains("gzip"))
-        .unwrap_or(false);
-    serve_file(&mut socket, &web_root, path, gzip).await
+        let request_line = head.lines().next().unwrap_or("").trim().to_string();
+        let mut parts = request_line.split_whitespace();
+        let method = parts.next().unwrap_or("GET").to_string();
+        let path = parts.next().unwrap_or("/").to_string();
+        let route = path.split('?').next().unwrap_or("/").to_string();
+        let lower = head.to_lowercase();
+        let lines: Vec<&str> = lower.lines().skip(1).map(|l| l.trim()).collect();
+        let keeps_open = !lines.iter().any(|l| {
+            (l.starts_with("connection:") && l.contains("close")) || l.starts_with("proxy-connection:")
+        });
+        let gzip = lines
+            .iter()
+            .any(|l| l.starts_with("accept-encoding:") && l.contains("gzip"));
+
+        if route == "/ws" || route.starts_with("/ws?") {
+            let upgrading = lines.iter().any(|l| l.starts_with("upgrade:"))
+                && lines.iter().any(|l| l.contains("websocket"));
+            if !upgrading {
+                consume_head(&mut socket, &head).await?;
+                respond(
+                    &mut socket,
+                    400,
+                    "text/plain; charset=utf-8",
+                    b"websocket upgrade required",
+                    "",
+                )
+                .await?;
+                return Ok(());
+            }
+            return run_socket(socket, addr, state).await;
+        }
+
+        consume_head(&mut socket, &head).await?;
+
+        if method != "GET" && method != "HEAD" {
+            respond(
+                &mut socket,
+                405,
+                "text/plain; charset=utf-8",
+                b"method not allowed",
+                "",
+            )
+            .await?;
+        } else if route == "/health" {
+            let (tick, time, pilots, seed) = {
+                let w = state.lock().unwrap();
+                (w.tick, w.time, w.players.len(), w.terrain.seed)
+            };
+            let body = format!(
+                "{{\"ok\":true,\"tick\":{tick},\"sim_time\":{time:.2},\"pilots\":{pilots},\"seed\":\"{seed:#x}\",\"sim_hz\":{SIM_HZ}}}"
+            );
+            respond(&mut socket, 200, "application/json", body.as_bytes(), "").await?;
+        } else if method == "HEAD" {
+            let file = static_path(&web_root, &path);
+            let meta = file.as_deref().and_then(|f| fs::metadata(f).ok());
+            let (status, ctype, len) = match (file, meta) {
+                (Some(f), Some(m)) => (
+                    200u16,
+                    mime_for(&f.to_string_lossy()).to_string(),
+                    m.len() as usize,
+                ),
+                _ => (404, "text/plain; charset=utf-8".to_string(), 0),
+            };
+            head_only(&mut socket, status, &ctype, len).await?;
+        } else {
+            serve_file(&mut socket, &web_root, &path, gzip).await?;
+        }
+
+        if !keeps_open {
+            return Ok(());
+        }
+    }
+}
+
+async fn consume_head(socket: &mut TcpStream, head: &str) -> std::io::Result<()> {
+    let end = head.find("\r\n\r\n").map(|i| i + 4).unwrap_or(head.len());
+    let mut buf = vec![0u8; end];
+    socket.read_exact(&mut buf).await.map(|_| ())
+}
+
+async fn head_only(
+    socket: &mut TcpStream,
+    status: u16,
+    content_type: &str,
+    len: usize,
+) -> std::io::Result<()> {
+    let reason = if status == 200 { "OK" } else { "Not Found" };
+    let head = format!(
+        "HTTP/1.1 {status} {reason}\r\ncontent-type: {content_type}\r\ncontent-length: {len}\r\ncache-control: no-store\r\n\r\n"
+    );
+    socket.write_all(head.as_bytes()).await?;
+    socket.flush().await
 }
 
 async fn run_socket(
