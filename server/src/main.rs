@@ -649,7 +649,7 @@ async fn serve_file(
             return respond(
                 socket,
                 200,
-                mime_for(request_path),
+                mime_for(&file.to_string_lossy()),
                 &body,
                 "content-encoding: gzip\r\ncache-control: no-store\r\n",
             )
@@ -662,7 +662,7 @@ async fn serve_file(
             respond(
                 socket,
                 200,
-                mime_for(request_path),
+                mime_for(&file.to_string_lossy()),
                 &body,
                 "cache-control: no-store\r\n",
             )
