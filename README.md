@@ -20,6 +20,24 @@ scripts/build.sh          # wasm client -> web/ (also writes .wasm.gz for the se
 scripts/run.sh            # serves web/ and runs the sim on http://127.0.0.1:23456
 ```
 
+## Ship it
+
+```sh
+./build-tag-and-push.sh      # wasm client + release server here, then docker build/push
+                             # -> initialed85/flightsim:latest and :<git-sha>
+```
+
+Live in `home-dev`: https://flightsim.dev.initialed85.cc (Deployment, Service and Ingress
+under `home-ops/clusters/dev/applications/flightsim`, Argo CD syncs from master). The
+image is mutable `:latest` with `imagePullPolicy: Always`, so delete the pod after a push
+and confirm the digest:
+
+```sh
+kubectl --context home-dev -n flightsim delete pod -l app=flightsim
+kubectl --context home-dev -n flightsim get pod -l app=flightsim \
+  -o jsonpath='{.items[0].status.containerStatuses[0].imageID}'
+```
+
 Open http://127.0.0.1:23456 in a browser. `scripts/dev.sh` rebuilds the wasm on change.
 
 ## Keys
