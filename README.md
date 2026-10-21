@@ -53,7 +53,7 @@ URL=http://192.168.11.128:23456/
 python3 -c 'import json,sys; print(json.dumps({"id":1,"method":"Page.navigate","params":{"url":sys.argv[1]}}))' "$URL" | websocat -t "$W"
 # read the HUD back out of the live page
 python3 -c 'import json; print(json.dumps({"id":2,"method":"Runtime.evaluate","params":{"expression":"document.getElementById("flight").textContent","returnByValue":True}}))' | websocat -t "$W"
-curl -s -X PUT "https://chromium.dev.initialed85.cc/json/close/$ID" > /dev/null
+# the ingress does not proxy /json/close (404/405), so the tab is left open; it dies on pod restart
 ```
 
 Success looks like `[net] + 1 pilot-…` in the server log and a flight readout such as
