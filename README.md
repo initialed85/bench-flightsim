@@ -40,6 +40,26 @@ Success looks like: 34 common tests pass, the wasm bundle lands in `web/`, `/hea
 reports `sim_hz: 30`, and the smoke example reports a climb (`best altitude` well above
 the ground) after sending full throttle.
 
+### Check the browser client without a local browser
+
+No Playwright browser is installed here; use Edward's headless Chromium over CDP
+(`home-ops/SERVICES.md`), which is also how the page gets checked on a LAN IP:
+
+```sh
+T=$(curl -s -X PUT "https://chromium.dev.initialed85.cc/json/new")
+W=$(echo "$T" | grep -o '"webSocketDebuggerUrl":"[^"]*' | cut -d'"' -f3)
+ID=$(echo "$T" | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f3)
+URL=http://192.168.11.128:23456/
+python3 -c 'import json,sys; print(json.dumps({"id":1,"method":"Page.navigate","params":{"url":sys.argv[1]}}))' "$URL" | websocat -t "$W"
+# read the HUD back out of the live page
+python3 -c 'import json; print(json.dumps({"id":2,"method":"Runtime.evaluate","params":{"expression":"document.getElementById("flight").textContent","returnByValue":True}}))' | websocat -t "$W"
+curl -s -X PUT "https://chromium.dev.initialed85.cc/json/close/$ID" > /dev/null
+```
+
+Success looks like `[net] + 1 pilot-…` in the server log and a flight readout such as
+`71 kt 2836 ft hdg 360 deg bank 0 deg pitch 13 deg`. A `[net] …: Connection reset by peer`
+line right afterwards is the headless tab being torn down, not a fault.
+
 ## Notes
 
 - Coordinate system: `+Z` north, `-X` east, `+Y` up; heading is compass (clockwise from north).
