@@ -1,0 +1,13 @@
+[package]
+name = "flight-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+flight-common = { path = "../common" }
+tokio = { version = "1.53", features = ["rt-multi-thread", "net", "time", "macros", "sync", "signal"] }
+tokio-tungstenite = "0.30"
+futures-util = "0.3"
+serde = { workspace = true }
+serde_json = { workspace = true }
+glam = { workspace = true }

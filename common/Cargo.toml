@@ -1,0 +1,10 @@
+[package]
+name = "flight-common"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+# Same major version Bevy 0.19 uses, so flight-common's Vec3/Quat *are* Bevy's.
+glam = { workspace = true }

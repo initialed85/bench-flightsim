@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>bench-flightsim</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #10161f;
+        color: #e8eef6;
+        font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+        overflow: hidden;
+      }
+      #game {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+      .panel {
+        position: fixed;
+        background: rgba(8, 12, 18, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        padding: 8px 12px;
+        white-space: pre;
+        font-size: 13px;
+        line-height: 1.45;
+        pointer-events: none;
+      }
+      #status {
+        left: 14px;
+        top: 12px;
+      }
+      #flight {
+        left: 14px;
+        top: 46px;
+        font-size: 15px;
+      }
+      #warn {
+        left: 14px;
+        top: 76px;
+        color: #ff8a5c;
+        font-weight: 700;
+      }
+      #board {
+        right: 14px;
+        top: 12px;
+      }
+      #log {
+        right: 14px;
+        bottom: 56px;
+        max-width: 44vw;
+        white-space: pre-wrap;
+      }
+      #help {
+        left: 14px;
+        bottom: 12px;
+        max-width: 60vw;
+        white-space: pre-wrap;
+        color: #9fb0c2;
+      }
+      #chat {
+        position: fixed;
+        right: 14px;
+        bottom: 12px;
+        pointer-events: auto;
+      }
+      #chat input {
+        width: 240px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(8, 12, 18, 0.85);
+        color: inherit;
+        font: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="status" class="panel">connecting</div>
+    <div id="flight" class="panel"></div>
+    <div id="warn" class="panel"></div>
+    <div id="board" class="panel"></div>
+    <div id="log" class="panel"></div>
+    <div id="help" class="panel">W/S throttle   A/D roll   ↑/↓ elevator (pull/push)   ←/→ rudder
+Shift boost   Space guns   B wheel brake   R respawn after a crash
+Fly the orange gates in order; land on the runway for points. Slow down and the wing stops working.</div>
+    <div id="chat"><input id="chat-input" placeholder="chat" maxlength="80" /></div>
+    <script type="module">
+      import init, { send_chat } from "./flight_client.js";
+
+      const setStatus = (text) => {
+        const el = document.getElementById("status");
+        if (el) el.textContent = text;
+      };
+
+      const input = document.getElementById("chat-input");
+      input.addEventListener("keydown", (e) => {
+        // Keep the keyboard away from the flight controls while typing.
+        e.stopPropagation();
+        if (e.key === "Enter" && input.value.trim()) {
+          send_chat(input.value.trim());
+          input.value = "";
+        }
+      });
+      input.addEventListener("keyup", (e) => e.stopPropagation());
+
+      init().catch((err) => setStatus("client failed to start: " + err));
+    </script>
+  </body>
+</html>

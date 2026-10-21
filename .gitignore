@@ -1,0 +1,5 @@
+target
+web/flightsim_client.js
+web/flightsim_client_bg.wasm
+web/flightsim_client_bg.wasm.gz
+web/*.d.ts
