@@ -7,8 +7,8 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use bevy::window::WindowResolution;
 use flight_common::{
-    Aircraft, Controls, Crash, GameEvent, PlaneInfo, PlaneState, Readout, Terrain, AIRCRAFT, ClientMsg,
-    SEED, state_from_info, step_plane,
+    state_from_info, step_plane, Aircraft, ClientMsg, Controls, Crash, GameEvent, PlaneInfo,
+    PlaneState, Readout, Terrain, AIRCRAFT, SEED,
 };
 
 pub mod hud;
@@ -89,7 +89,13 @@ impl Game {
         }
     }
 
-    pub fn apply_snapshot(&mut self, tick: u64, time: f64, planes: &[PlaneInfo], events: &[GameEvent]) {
+    pub fn apply_snapshot(
+        &mut self,
+        tick: u64,
+        time: f64,
+        planes: &[PlaneInfo],
+        events: &[GameEvent],
+    ) {
         self.tick = tick;
         self.sim_time = time;
         self.connected = true;
@@ -107,16 +113,42 @@ impl Game {
         }
         for e in events {
             let line = match e {
-                GameEvent::Gate { name, gate, lap, points, total, .. } => {
+                GameEvent::Gate {
+                    name,
+                    gate,
+                    lap,
+                    points,
+                    total,
+                    ..
+                } => {
                     format!("{name} gate {gate} lap {lap} +{points} ({total})")
                 }
                 GameEvent::Crash { name, reason, .. } => format!("{name} crashed: {reason}"),
-                GameEvent::Kill { name, victim_name, points, .. } => {
+                GameEvent::Kill {
+                    name,
+                    victim_name,
+                    points,
+                    ..
+                } => {
                     format!("{name} shot down {victim_name} +{points}")
                 }
-                GameEvent::Damage { victim_name, hp, .. } => format!("{victim_name} hit, hp {hp:.0}"),
-                GameEvent::Land { name, points, on_runway, .. } => {
-                    format!("{name} landed {} +{points}", if *on_runway { "on the runway" } else { "in the field" })
+                GameEvent::Damage {
+                    victim_name, hp, ..
+                } => format!("{victim_name} hit, hp {hp:.0}"),
+                GameEvent::Land {
+                    name,
+                    points,
+                    on_runway,
+                    ..
+                } => {
+                    format!(
+                        "{name} landed {} +{points}",
+                        if *on_runway {
+                            "on the runway"
+                        } else {
+                            "in the field"
+                        }
+                    )
                 }
                 GameEvent::Takeoff { name, .. } => format!("{name} took off"),
                 GameEvent::Join { name, .. } => format!("{name} joined"),
@@ -169,8 +201,20 @@ pub fn run() {
     app.init_resource::<Game>();
     app.add_systems(Startup, scene::build);
     app.add_systems(Update, (net::connect, net::poll, hud::resize).chain());
-    app.add_systems(Update, (read_input, predict, net::send_input, net::keep_alive).chain());
-    app.add_systems(Update, (reconcile, scene::sync_planes, scene::chase_camera, hud::draw).chain());
+    app.add_systems(
+        Update,
+        (read_input, predict, net::send_input, net::keep_alive).chain(),
+    );
+    app.add_systems(
+        Update,
+        (
+            reconcile,
+            scene::sync_planes,
+            scene::chase_camera,
+            hud::draw,
+        )
+            .chain(),
+    );
     app.run();
 }
 
@@ -205,7 +249,9 @@ fn read_input(keys: Res<ButtonInput<KeyCode>>, time: Res<Time>, mut game: ResMut
 
 /// Step the shared model locally at the server's rate so the airplane answers instantly.
 fn predict(mut game: ResMut<Game>, time: Res<Time>) {
-    let Some(mut state) = game.local.take() else { return };
+    let Some(mut state) = game.local.take() else {
+        return;
+    };
     game.accrue += time.delta_secs();
     let mut steps = 0;
     while game.accrue >= DT && steps < 6 {
@@ -230,7 +276,9 @@ fn predict(mut game: ResMut<Game>, time: Res<Time>) {
 
 /// Pull the prediction back onto the authority: blend small error, snap big error.
 fn reconcile(mut game: ResMut<Game>) {
-    let Some(auth) = game.authority.clone() else { return };
+    let Some(auth) = game.authority.clone() else {
+        return;
+    };
     let Some(local) = game.local.as_mut() else {
         game.local = Some(auth);
         return;
@@ -262,7 +310,9 @@ pub fn start() {
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub fn send_chat(text: &str) {
-    net::send(&ClientMsg::Chat { text: text.to_string() });
+    net::send(&ClientMsg::Chat {
+        text: text.to_string(),
+    });
 }
 
 /// Re-exported so `scene` can name the aircraft type without importing it twice.

@@ -261,7 +261,13 @@ pub struct Outcome {
 }
 
 /// One integration step. Semi-implicit Euler with `dt` clamped for stability.
-pub fn step_plane(state: &mut PlaneState, controls: &Controls, terrain: &Terrain, dt: f32, ac: &Aircraft) -> (Readout, Outcome) {
+pub fn step_plane(
+    state: &mut PlaneState,
+    controls: &Controls,
+    terrain: &Terrain,
+    dt: f32,
+    ac: &Aircraft,
+) -> (Readout, Outcome) {
     let dt = dt.clamp(0.0, 0.05);
     let c = controls.clamped();
     let was_grounded = state.grounded;
@@ -325,8 +331,8 @@ pub fn step_plane(state: &mut PlaneState, controls: &Controls, terrain: &Terrain
     // itself when the nose points at the sky, which is where wings-level means nothing.
     let roll_target =
         c.aileron * ac.roll_max * eff + ac.roll_stability * u.cross(Vec3::Y).dot(f) * 2.0;
-    let mut pitch_target = c.elevator * ac.pitch_max * eff
-        - ac.pitch_stability * (alpha_stick - ac.alpha_trim);
+    let mut pitch_target =
+        c.elevator * ac.pitch_max * eff - ac.pitch_stability * (alpha_stick - ac.alpha_trim);
     if alpha_stick > ac.alpha_stall {
         pitch_target -= ac.stall_pitch_drop * (alpha_stick - ac.alpha_stall);
     } else if alpha_stick < -ac.alpha_stall {
@@ -353,7 +359,10 @@ pub fn step_plane(state: &mut PlaneState, controls: &Controls, terrain: &Terrain
     state.body.z += (yaw_target - state.body.z) * k;
     state.body = Vec3::new(
         state.body.x.clamp(-ac.rate_limit_roll, ac.rate_limit_roll),
-        state.body.y.clamp(-ac.rate_limit_pitch, ac.rate_limit_pitch),
+        state
+            .body
+            .y
+            .clamp(-ac.rate_limit_pitch, ac.rate_limit_pitch),
         state.body.z.clamp(-ac.rate_limit_yaw, ac.rate_limit_yaw),
     );
 
@@ -361,7 +370,7 @@ pub fn step_plane(state: &mut PlaneState, controls: &Controls, terrain: &Terrain
         * Quat::from_rotation_z(-state.body.x * dt)
         * Quat::from_rotation_x(state.body.y * dt)
         * Quat::from_rotation_y(-state.body.z * dt))
-        .normalize();
+    .normalize();
 
     state.pos += state.vel * dt;
 
@@ -371,20 +380,29 @@ pub fn step_plane(state: &mut PlaneState, controls: &Controls, terrain: &Terrain
         state.vel -= hv * (k * dt);
     }
 
-    resolve_ground(state, terrain, ac, was_grounded, lift_mag, speed, bank, pitch)
-        .with_readout(Readout {
-            speed,
-            alpha,
-            beta,
-            cl,
-            bank,
-            pitch,
-            heading: heading_of(q),
-            g_load: lift_mag / (ac.mass * G),
-            stalled: alpha.abs() > ac.alpha_stall,
-            clearance: state.pos.y - ac.gear_height - terrain.surface_height(state.pos.x, state.pos.z),
-            vs: state.vel.y,
-        })
+    resolve_ground(
+        state,
+        terrain,
+        ac,
+        was_grounded,
+        lift_mag,
+        speed,
+        bank,
+        pitch,
+    )
+    .with_readout(Readout {
+        speed,
+        alpha,
+        beta,
+        cl,
+        bank,
+        pitch,
+        heading: heading_of(q),
+        g_load: lift_mag / (ac.mass * G),
+        stalled: alpha.abs() > ac.alpha_stall,
+        clearance: state.pos.y - ac.gear_height - terrain.surface_height(state.pos.x, state.pos.z),
+        vs: state.vel.y,
+    })
 }
 
 impl Outcome {
@@ -477,7 +495,13 @@ mod tests {
         PlaneState::spawn(Vec3::new(0.0, 400.0, -600.0), 0.0, speed)
     }
 
-    fn simulate(state: &mut PlaneState, c: &Controls, terrain: &Terrain, seconds: f32, dt: f32) -> Readout {
+    fn simulate(
+        state: &mut PlaneState,
+        c: &Controls,
+        terrain: &Terrain,
+        seconds: f32,
+        dt: f32,
+    ) -> Readout {
         let mut last = Readout::default();
         let steps = (seconds / dt) as usize;
         for _ in 0..steps {
@@ -543,7 +567,10 @@ mod tests {
         ] {
             let q = quat_align_y(dir);
             let axis = up_of(q);
-            assert!((axis - dir.normalize()).length() < 1e-5, "gate axis {axis} vs {dir}");
+            assert!(
+                (axis - dir.normalize()).length() < 1e-5,
+                "gate axis {axis} vs {dir}"
+            );
         }
     }
 
@@ -552,7 +579,11 @@ mod tests {
         let t = world();
         let mut s = airborne(55.0);
         let before = pitch_of(s.rot);
-        let c = Controls { elevator: 1.0, throttle: 0.5, ..Default::default() };
+        let c = Controls {
+            elevator: 1.0,
+            throttle: 0.5,
+            ..Default::default()
+        };
         simulate(&mut s, &c, &t, 1.5, 1.0 / 60.0);
         assert!(pitch_of(s.rot) > before + 0.1, "nose did not come up");
     }
@@ -561,7 +592,11 @@ mod tests {
     fn positive_aileron_banks_right() {
         let t = world();
         let mut s = airborne(55.0);
-        let c = Controls { aileron: 1.0, throttle: 0.5, ..Default::default() };
+        let c = Controls {
+            aileron: 1.0,
+            throttle: 0.5,
+            ..Default::default()
+        };
         simulate(&mut s, &c, &t, 2.0, 1.0 / 60.0);
         assert!(deg(bank_of(s.rot)) > 30.0, "bank {}", deg(bank_of(s.rot)));
         assert!(right_of(s.rot).y < 0.0, "right wing should be down");
@@ -571,18 +606,38 @@ mod tests {
     fn positive_rudder_swings_the_nose_right() {
         let t = world();
         let mut s = airborne(55.0);
-        let c = Controls { rudder: 1.0, throttle: 0.4, ..Default::default() };
+        let c = Controls {
+            rudder: 1.0,
+            throttle: 0.4,
+            ..Default::default()
+        };
         simulate(&mut s, &c, &t, 3.0, 1.0 / 60.0);
-        assert!(deg(heading_of(s.rot)) > 5.0, "heading {}", deg(heading_of(s.rot)));
+        assert!(
+            deg(heading_of(s.rot)) > 5.0,
+            "heading {}",
+            deg(heading_of(s.rot))
+        );
     }
 
     /// A pilot holding a bank angle with proportional aileron, the way a player flies.
-    fn hold_bank(state: &mut PlaneState, target_bank: f32, elevator: f32, throttle: f32, seconds: f32, t: &Terrain) -> Readout {
+    fn hold_bank(
+        state: &mut PlaneState,
+        target_bank: f32,
+        elevator: f32,
+        throttle: f32,
+        seconds: f32,
+        t: &Terrain,
+    ) -> Readout {
         let mut last = Readout::default();
         for _ in 0..(seconds * 30.0) as usize {
             let bank = bank_of(state.rot);
             let aileron = ((target_bank - bank) * 1.6).clamp(-1.0, 1.0);
-            let c = Controls { aileron, elevator, throttle, ..Default::default() };
+            let c = Controls {
+                aileron,
+                elevator,
+                throttle,
+                ..Default::default()
+            };
             let (r, out) = step_plane(state, &c, t, 1.0 / 30.0, &AIRCRAFT);
             assert!(out.crash.is_none(), "crash {out:?} at {}", state.pos);
             last = r;
@@ -597,7 +652,10 @@ mod tests {
         for _ in 0..20 {
             let mid = (lo + hi) * 0.5;
             let mut s = airborne(speed);
-            let c = Controls { throttle: mid, ..Default::default() };
+            let c = Controls {
+                throttle: mid,
+                ..Default::default()
+            };
             let r = simulate(&mut s, &c, t, 12.0, 1.0 / 30.0);
             if r.vs > 0.0 {
                 hi = mid;
@@ -614,9 +672,16 @@ mod tests {
         let throttle = trim_throttle(45.0, &t);
         let mut s = airborne(45.0);
         let start = s.pos.y;
-        let c = Controls { throttle, ..Default::default() };
+        let c = Controls {
+            throttle,
+            ..Default::default()
+        };
         let r = simulate(&mut s, &c, &t, 30.0, 1.0 / 30.0);
-        assert!((s.pos.y - start).abs() < 80.0, "altitude drifted {} m at throttle {throttle}", s.pos.y - start);
+        assert!(
+            (s.pos.y - start).abs() < 80.0,
+            "altitude drifted {} m at throttle {throttle}",
+            s.pos.y - start
+        );
         assert!(!r.stalled, "trimmed cruise should not stall");
         assert!(r.g_load > 0.7 && r.g_load < 1.4, "g load {}", r.g_load);
         assert!(r.speed > 35.0 && r.speed < 80.0, "cruise speed {}", r.speed);
@@ -626,10 +691,18 @@ mod tests {
     fn too_little_power_comes_down() {
         let t = world();
         let mut s = airborne(45.0);
-        let c = Controls { throttle: 0.05, ..Default::default() };
+        let c = Controls {
+            throttle: 0.05,
+            ..Default::default()
+        };
         let start = s.pos.y;
         simulate(&mut s, &c, &t, 12.0, 1.0 / 30.0);
-        assert!(s.pos.y < start - 20.0, "idle power should descend: {} -> {}", start, s.pos.y);
+        assert!(
+            s.pos.y < start - 20.0,
+            "idle power should descend: {} -> {}",
+            start,
+            s.pos.y
+        );
     }
 
     #[test]
@@ -638,7 +711,11 @@ mod tests {
         // Below the stall speed with back stick: the wing cannot hold the airplane up.
         let mut s = airborne(28.0);
         let start = s.pos.y;
-        let c = Controls { elevator: 0.6, throttle: 0.25, ..Default::default() };
+        let c = Controls {
+            elevator: 0.6,
+            throttle: 0.25,
+            ..Default::default()
+        };
         let mut stalled = false;
         for _ in 0..150 {
             let (r, out) = step_plane(&mut s, &c, &t, 1.0 / 30.0, &AIRCRAFT);
@@ -654,7 +731,11 @@ mod tests {
             let (_, out) = step_plane(&mut s, &c, &t, 1.0 / 30.0, &AIRCRAFT);
             assert!(out.crash.is_none(), "stall test crashed: {:?}", out.crash);
         }
-        assert!(s.pos.y < start - 10.0, "stall did not dump altitude: {}", s.pos.y);
+        assert!(
+            s.pos.y < start - 10.0,
+            "stall did not dump altitude: {}",
+            s.pos.y
+        );
         assert!(s.vel.y < 0.0);
     }
 
@@ -692,17 +773,42 @@ mod tests {
         hold_bank(&mut s, 45f32.to_radians(), 0.15, 0.5, 4.0, &t);
         assert!(bank_of(s.rot).abs() > 0.4);
         // Neutral stick: dihedral and roll damping level the wings on their own.
-        simulate(&mut s, &Controls { throttle: 0.5, ..Default::default() }, &t, 6.0, 1.0 / 30.0);
-        assert!(deg(bank_of(s.rot)).abs() < 15.0, "did not self-level: {}", deg(bank_of(s.rot)));
+        simulate(
+            &mut s,
+            &Controls {
+                throttle: 0.5,
+                ..Default::default()
+            },
+            &t,
+            6.0,
+            1.0 / 30.0,
+        );
+        assert!(
+            deg(bank_of(s.rot)).abs() < 15.0,
+            "did not self-level: {}",
+            deg(bank_of(s.rot))
+        );
     }
 
     #[test]
     fn full_throttle_takes_off_from_the_runway() {
         let t = world();
-        let mut s = PlaneState::spawn(Vec3::new(0.0, t.surface_height(0.0, -400.0) + AIRCRAFT.gear_height, -400.0), 0.0, 0.0);
+        let mut s = PlaneState::spawn(
+            Vec3::new(
+                0.0,
+                t.surface_height(0.0, -400.0) + AIRCRAFT.gear_height,
+                -400.0,
+            ),
+            0.0,
+            0.0,
+        );
         s.grounded = true;
         s.vel = Vec3::new(0.0, 0.0, 1.0);
-        let c = Controls { throttle: 1.0, elevator: 0.75, ..Default::default() };
+        let c = Controls {
+            throttle: 1.0,
+            elevator: 0.75,
+            ..Default::default()
+        };
         let mut airborne_at = None;
         for i in 0..(30 * 40) {
             let (_, out) = step_plane(&mut s, &c, &t, 1.0 / 30.0, &AIRCRAFT);
@@ -721,9 +827,17 @@ mod tests {
     #[test]
     fn gentle_touchdown_on_the_runway_is_a_landing() {
         let t = world();
-        let mut s = PlaneState::spawn(Vec3::new(0.0, RUNWAY_Y_TEST + AIRCRAFT.gear_height + 12.0, -300.0), 0.0, 36.0);
+        let mut s = PlaneState::spawn(
+            Vec3::new(0.0, RUNWAY_Y_TEST + AIRCRAFT.gear_height + 12.0, -300.0),
+            0.0,
+            36.0,
+        );
         s.vel = Vec3::new(0.0, -1.0, 36.0);
-        let c = Controls { throttle: 0.35, elevator: 0.05, ..Default::default() };
+        let c = Controls {
+            throttle: 0.35,
+            elevator: 0.05,
+            ..Default::default()
+        };
         let mut landed = false;
         for _ in 0..(30 * 30) {
             let (_, out) = step_plane(&mut s, &c, &t, 1.0 / 30.0, &AIRCRAFT);
@@ -748,9 +862,16 @@ mod tests {
         let hill = t.surface_height(tx, tz);
         assert!(hill > 60.0, "no hill at that spot: {hill}");
         let aim = Vec3::new(tx, hill, tz) - Vec3::new(tx - 500.0, hill + 8.0, tz - 500.0);
-        let mut s = PlaneState::spawn(Vec3::new(tx - 500.0, hill + 8.0, tz - 500.0), aim.x.atan2(aim.z), 80.0);
+        let mut s = PlaneState::spawn(
+            Vec3::new(tx - 500.0, hill + 8.0, tz - 500.0),
+            aim.x.atan2(aim.z),
+            80.0,
+        );
         s.vel = aim.normalize() * 80.0;
-        let c = Controls { throttle: 0.8, ..Default::default() };
+        let c = Controls {
+            throttle: 0.8,
+            ..Default::default()
+        };
         let mut crashed = None;
         for _ in 0..(30 * 20) {
             let (_, out) = step_plane(&mut s, &c, &t, 1.0 / 30.0, &AIRCRAFT);
@@ -759,17 +880,26 @@ mod tests {
                 break;
             }
         }
-        assert!(crashed.is_some(), "flew through a mountain without crashing");
+        assert!(
+            crashed.is_some(),
+            "flew through a mountain without crashing"
+        );
     }
 
     #[test]
     fn ditching_in_the_sea_crashes() {
         let t = world();
         let sea = t.surface_height(2350.0, 0.0);
-        assert!(sea < crate::terrain::SEA_LEVEL, "no sea at that spot: {sea}");
+        assert!(
+            sea < crate::terrain::SEA_LEVEL,
+            "no sea at that spot: {sea}"
+        );
         let mut s = PlaneState::spawn(Vec3::new(2350.0, sea + 15.0, 0.0), 0.0, 45.0);
         s.vel = Vec3::new(0.0, -5.0, 45.0);
-        let c = Controls { throttle: 0.15, ..Default::default() };
+        let c = Controls {
+            throttle: 0.15,
+            ..Default::default()
+        };
         let mut crashed = None;
         for _ in 0..(30 * 30) {
             let (_, out) = step_plane(&mut s, &c, &t, 1.0 / 30.0, &AIRCRAFT);
@@ -806,10 +936,16 @@ mod tests {
         let v_stall = (2.0 * weight / (AIRCRAFT.rho * AIRCRAFT.wing_area * AIRCRAFT.cl_max)).sqrt();
         let cl = lift_coefficient(AIRCRAFT.alpha_stall, &AIRCRAFT);
         let lift = 0.5 * AIRCRAFT.rho * v_stall * v_stall * AIRCRAFT.wing_area * cl;
-        assert!((lift - weight).abs() / weight < 0.03, "lift {lift} weight {weight}");
+        assert!(
+            (lift - weight).abs() / weight < 0.03,
+            "lift {lift} weight {weight}"
+        );
         // Cruise lift at the trimmed angle of attack supports it too, at a sane speed.
         let cl_c = lift_coefficient(AIRCRAFT.alpha_trim, &AIRCRAFT);
         let v_cruise = (2.0 * weight / (AIRCRAFT.rho * AIRCRAFT.wing_area * cl_c)).sqrt();
-        assert!(v_cruise > v_stall && v_cruise < 60.0, "cruise {v_cruise} stall {v_stall}");
+        assert!(
+            v_cruise > v_stall && v_cruise < 60.0,
+            "cruise {v_cruise} stall {v_stall}"
+        );
     }
 }

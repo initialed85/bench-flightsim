@@ -705,7 +705,8 @@ async fn handle_connection(
         let lower = head.to_lowercase();
         let lines: Vec<&str> = lower.lines().skip(1).map(|l| l.trim()).collect();
         let keeps_open = !lines.iter().any(|l| {
-            (l.starts_with("connection:") && l.contains("close")) || l.starts_with("proxy-connection:")
+            (l.starts_with("connection:") && l.contains("close"))
+                || l.starts_with("proxy-connection:")
         });
         let gzip = lines
             .iter()

@@ -5,7 +5,10 @@ use glam::{Quat, Vec3};
 fn main() {
     let t = Terrain::generate(SEED);
     let dt = 1.0 / 30.0;
-    let neutral = Controls { throttle: 0.5, ..Default::default() };
+    let neutral = Controls {
+        throttle: 0.5,
+        ..Default::default()
+    };
 
     println!("== bank decay from 60 deg, neutral stick (every 0.1 s) ==");
     let mut s = PlaneState::spawn(Vec3::new(0.0, 500.0, 0.0), 0.0, 55.0);
@@ -32,7 +35,10 @@ fn main() {
 
     println!("== hands off trim, every 0.2 s from t=14 ==");
     let mut s = PlaneState::spawn(Vec3::new(0.0, 400.0, -600.0), 0.0, 45.7);
-    let c = Controls { throttle: 0.31, ..Default::default() };
+    let c = Controls {
+        throttle: 0.31,
+        ..Default::default()
+    };
     for i in 420..700 {
         let (r, o) = step_plane(&mut s, &c, &t, dt, &AIRCRAFT);
         if i % 6 == 0 {

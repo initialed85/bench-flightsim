@@ -28,8 +28,7 @@ const APRON_BLEND: f32 = 150.0;
 pub const SEED: i64 = 0x5EED_C0DE_F119_8542;
 
 pub fn hash2(x: i64, y: i64, seed: i64) -> i64 {
-    let mut h = (x as u64)
-        .wrapping_mul(0x9E37_79B9_7F4A_7C15)
+    let mut h = (x as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)
         ^ (y as u64).wrapping_mul(0xC2B2_AE3D_27D4_EB4F)
         ^ (seed as u64).wrapping_mul(0x1656_67B1_9E37_79F9);
     h ^= h >> 33;
@@ -79,7 +78,12 @@ pub fn fbm(x: f32, z: f32, seed: i64, octaves: usize) -> f32 {
     let mut freq = 1.0 / 260.0;
     let mut norm = 0.0f32;
     for i in 0..octaves {
-        sum += amp * vnoise(x * freq, z * freq, seed.wrapping_add((i as i64).wrapping_mul(1013)));
+        sum += amp
+            * vnoise(
+                x * freq,
+                z * freq,
+                seed.wrapping_add((i as i64).wrapping_mul(1013)),
+            );
         norm += amp;
         amp *= 0.5;
         freq *= 2.17;
@@ -94,7 +98,11 @@ fn ridged(x: f32, z: f32, seed: i64, octaves: usize) -> f32 {
     let mut freq = 1.0 / 190.0;
     let mut norm = 0.0f32;
     for i in 0..octaves {
-        let n = vnoise(x * freq + 41.0, z * freq - 17.0, seed.wrapping_add((i as i64).wrapping_mul(733)));
+        let n = vnoise(
+            x * freq + 41.0,
+            z * freq - 17.0,
+            seed.wrapping_add((i as i64).wrapping_mul(733)),
+        );
         let r = 1.0 - (2.0 * n - 1.0).abs();
         sum += amp * r * r;
         norm += amp;
@@ -203,7 +211,11 @@ impl Terrain {
         if h < -1.0 {
             // Seabed, shallower is brighter.
             let t = smoothstep(-26.0, 0.0, h);
-            [lerp(0.07, 0.20, t), lerp(0.16, 0.35, t), lerp(0.22, 0.40, t)]
+            [
+                lerp(0.07, 0.20, t),
+                lerp(0.16, 0.35, t),
+                lerp(0.22, 0.40, t),
+            ]
         } else if h < 4.0 {
             [0.78, 0.72, 0.52]
         } else if h > 235.0 {
@@ -214,7 +226,11 @@ impl Terrain {
             let patch = fbm(x * 1.7, z * 1.7, self.seed ^ 0xBEEF_1, 2);
             let dry = smoothstep(0.58, 0.78, patch);
             let alt = smoothstep(150.0, 220.0, h);
-            let g = [lerp(0.27, 0.20, alt), lerp(0.55, 0.46, alt), lerp(0.24, 0.22, alt)];
+            let g = [
+                lerp(0.27, 0.20, alt),
+                lerp(0.55, 0.46, alt),
+                lerp(0.24, 0.22, alt),
+            ];
             [
                 lerp(g[0], 0.58, dry),
                 lerp(g[1], 0.54, dry),
@@ -282,8 +298,15 @@ mod tests {
     #[test]
     fn island_shelves_into_the_sea() {
         let t = Terrain::generate(SEED);
-        assert!(height_raw(0.0, 0.0, SEED) > RUNWAY_Y, "the field should be carved out of higher ground");
-        assert!(height_raw(0.0, 0.0, SEED) < 120.0, "no mountains under the field: {}", height_raw(0.0, 0.0, SEED));
+        assert!(
+            height_raw(0.0, 0.0, SEED) > RUNWAY_Y,
+            "the field should be carved out of higher ground"
+        );
+        assert!(
+            height_raw(0.0, 0.0, SEED) < 120.0,
+            "no mountains under the field: {}",
+            height_raw(0.0, 0.0, SEED)
+        );
         assert!(t.surface_height(2350.0, 0.0) < SEA_LEVEL);
         assert!(t.surface_height(0.0, -2350.0) < SEA_LEVEL);
     }

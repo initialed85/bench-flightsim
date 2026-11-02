@@ -18,7 +18,11 @@ fn main() {
         let y = RUNWAY_Y + AIRCRAFT.gear_height + 12.0;
         let mut s = PlaneState::spawn(Vec3::new(0.0, y, -300.0), 0.0, *speed);
         s.vel = Vec3::new(0.0, -*sink, *speed);
-        let c = Controls { throttle: *throttle, elevator: *elevator, ..Default::default() };
+        let c = Controls {
+            throttle: *throttle,
+            elevator: *elevator,
+            ..Default::default()
+        };
         let mut result = "no contact";
         for step in 0..(30 * 30) {
             let (r, out) = step_plane(&mut s, &c, &t, dt, &AIRCRAFT);

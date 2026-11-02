@@ -13,12 +13,24 @@ fn airborne(speed: f32) -> PlaneState {
 }
 
 /// Pilot that holds a target bank with proportional aileron, like a player watching the horizon.
-fn hold_bank(state: &mut PlaneState, target_bank: f32, elevator: f32, throttle: f32, seconds: f32, t: &Terrain) -> Readout {
+fn hold_bank(
+    state: &mut PlaneState,
+    target_bank: f32,
+    elevator: f32,
+    throttle: f32,
+    seconds: f32,
+    t: &Terrain,
+) -> Readout {
     let mut last = Readout::default();
     for _ in 0..(seconds / DT) as usize {
         let bank = bank_of(state.rot);
         let aileron = ((target_bank - bank) * 1.6).clamp(-1.0, 1.0);
-        let c = Controls { aileron, elevator, throttle, ..Default::default() };
+        let c = Controls {
+            aileron,
+            elevator,
+            throttle,
+            ..Default::default()
+        };
         let (r, out) = step_plane(state, &c, t, DT, &AIRCRAFT);
         assert!(out.crash.is_none(), "crash {out:?}");
         last = r;
@@ -44,7 +56,10 @@ fn find_trim(speed: f32, _t: &Terrain) -> f32 {
 
 fn simulate(state: &mut PlaneState, throttle: f32, seconds: f32) -> Readout {
     let t = world();
-    let c = Controls { throttle, ..Default::default() };
+    let c = Controls {
+        throttle,
+        ..Default::default()
+    };
     let mut last = Readout::default();
     for _ in 0..(seconds / DT) as usize {
         let (r, out) = step_plane(state, &c, &t, DT, &AIRCRAFT);
@@ -59,20 +74,32 @@ fn main() {
 
     // Cruise: what does full power do at 400 m?
     let mut s = airborne(50.0);
-    let c = Controls { throttle: 1.0, ..Default::default() };
+    let c = Controls {
+        throttle: 1.0,
+        ..Default::default()
+    };
     let mut r = Readout::default();
     for _ in 0..900 {
         let (rr, out) = step_plane(&mut s, &c, &t, DT, &AIRCRAFT);
         assert!(out.crash.is_none(), "crash {out:?}");
         r = rr;
     }
-    println!("cruise full power   : speed {:.1} m/s  vs {:+.2}  alt {:.0}  alpha {:.1} deg", r.speed, r.vs, s.pos.y, deg(r.alpha));
+    println!(
+        "cruise full power   : speed {:.1} m/s  vs {:+.2}  alt {:.0}  alpha {:.1} deg",
+        r.speed,
+        r.vs,
+        s.pos.y,
+        deg(r.alpha)
+    );
 
     let trim = find_trim(45.7, &t);
     let mut s = airborne(45.7);
     let mut band = (1e9f32, -1e9f32);
     for i in 0..1800 {
-        let c = Controls { throttle: trim, ..Default::default() };
+        let c = Controls {
+            throttle: trim,
+            ..Default::default()
+        };
         let (rr, out) = step_plane(&mut s, &c, &t, DT, &AIRCRAFT);
         assert!(out.crash.is_none(), "crash {out:?}");
         if i > 300 {
@@ -93,7 +120,11 @@ fn main() {
 
     // Stall mush: back stick at low speed, low power.
     let mut s = airborne(34.0);
-    let c = Controls { elevator: 1.0, throttle: 0.35, ..Default::default() };
+    let c = Controls {
+        elevator: 1.0,
+        throttle: 0.35,
+        ..Default::default()
+    };
     let y0 = s.pos.y;
     let mut stalled_at = None;
     for i in 0..300 {
@@ -149,7 +180,11 @@ fn main() {
 
     // Coordinated turn from level flight using only the rudder (skid turn).
     let mut s = airborne(55.0);
-    let c = Controls { rudder: 0.6, throttle: 0.5, ..Default::default() };
+    let c = Controls {
+        rudder: 0.6,
+        throttle: 0.5,
+        ..Default::default()
+    };
     let h0 = heading_of(s.rot);
     let mut r = Readout::default();
     for _ in 0..150 {
@@ -172,7 +207,11 @@ fn main() {
     let y = t.surface_height(0.0, -400.0) + AIRCRAFT.gear_height;
     let mut s = PlaneState::spawn(Vec3::new(0.0, y, -400.0), 0.0, 0.0);
     s.grounded = true;
-    let c = Controls { throttle: 1.0, elevator: 0.75, ..Default::default() };
+    let c = Controls {
+        throttle: 1.0,
+        elevator: 0.75,
+        ..Default::default()
+    };
     let mut rotated = None;
     for i in 0..(30 * 60) {
         let (r, out) = step_plane(&mut s, &c, &t, DT, &AIRCRAFT);
@@ -182,15 +221,28 @@ fn main() {
         }
     }
     let (tr, vrot) = rotated.unwrap_or((99.0, 0.0));
-    println!("takeoff roll             : rotated in {tr:.1} s at {vrot:.1} m/s ({:.0} km/h)", vrot * 3.6);
+    println!(
+        "takeoff roll             : rotated in {tr:.1} s at {vrot:.1} m/s ({:.0} km/h)",
+        vrot * 3.6
+    );
 
     // Climb away after rotation.
-    let c = Controls { throttle: 1.0, elevator: 0.3, ..Default::default() };
+    let c = Controls {
+        throttle: 1.0,
+        elevator: 0.3,
+        ..Default::default()
+    };
     let mut r = Readout::default();
     for _ in 0..300 {
         let (rr, out) = step_plane(&mut s, &c, &t, DT, &AIRCRAFT);
         assert!(out.crash.is_none(), "crash {out:?} at {}", s.pos);
         r = rr;
     }
-    println!("climb after rotation     : vs {:+.2} m/s  speed {:.1}  pitch {:.1} deg  alt {:.0}", r.vs, r.speed, deg(r.pitch), s.pos.y);
+    println!(
+        "climb after rotation     : vs {:+.2} m/s  speed {:.1}  pitch {:.1} deg  alt {:.0}",
+        r.vs,
+        r.speed,
+        deg(r.pitch),
+        s.pos.y
+    );
 }

@@ -174,7 +174,8 @@ pub enum ClientMsg {
 }
 
 pub fn encode<T: Serialize>(msg: &T) -> String {
-    serde_json::to_string(msg).unwrap_or_else(|e| format!("{{\"t\":\"error\",\"message\":\"{e}\"}}"))
+    serde_json::to_string(msg)
+        .unwrap_or_else(|e| format!("{{\"t\":\"error\",\"message\":\"{e}\"}}"))
 }
 
 pub fn decode<T: for<'de> Deserialize<'de>>(text: &str) -> Result<T, serde_json::Error> {

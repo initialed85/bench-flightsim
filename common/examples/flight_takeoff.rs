@@ -8,7 +8,11 @@ fn main() {
     let y = t.surface_height(0.0, -400.0) + ac.gear_height;
     let mut s = PlaneState::spawn(Vec3::new(0.0, y, -400.0), 0.0, 0.0);
     s.grounded = true;
-    let c = Controls { throttle: 1.0, elevator: 0.75, ..Default::default() };
+    let c = Controls {
+        throttle: 1.0,
+        elevator: 0.75,
+        ..Default::default()
+    };
     let dt = 1.0 / 30.0;
     let mut prev = 0.0f32;
     println!("weight={:.0} N  thrust={:.0} N", ac.mass * G, ac.thrust_max);
@@ -31,7 +35,11 @@ fn main() {
             );
         }
         if out.took_off {
-            println!("ROTATED t={} speed={}", (i as f32 * dt).round(), r.speed.round());
+            println!(
+                "ROTATED t={} speed={}",
+                (i as f32 * dt).round(),
+                r.speed.round()
+            );
             break;
         }
     }

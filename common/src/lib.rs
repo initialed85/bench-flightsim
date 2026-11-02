@@ -16,10 +16,10 @@ pub use flight::{
     Outcome, PlaneState, Readout, AIRCRAFT, G,
 };
 pub use protocol::{
-    decode, encode, pos_array, quat_array, state_from_info, Bullet, ClientMsg, GameEvent, PlaneInfo,
-    ServerMsg, PROTOCOL_VERSION,
+    decode, encode, pos_array, quat_array, state_from_info, Bullet, ClientMsg, GameEvent,
+    PlaneInfo, ServerMsg, PROTOCOL_VERSION,
 };
 pub use terrain::{
-    height_raw, is_runway, Terrain, GRID_N, GRID_STEP, RUNWAY_Y, RUNWAY_HALF_LENGTH,
-    RUNWAY_HALF_WIDTH, SEA_LEVEL, SEED, WORLD_HALF,
+    height_raw, is_runway, Terrain, GRID_N, GRID_STEP, RUNWAY_HALF_LENGTH, RUNWAY_HALF_WIDTH,
+    RUNWAY_Y, SEA_LEVEL, SEED, WORLD_HALF,
 };

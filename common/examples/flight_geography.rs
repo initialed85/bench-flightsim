@@ -29,10 +29,45 @@ fn fly(label: &str, c: &Controls) {
 }
 
 fn main() {
-    fly("rudder +", &Controls { throttle: 0.5, rudder: 0.5, ..Default::default() });
-    fly("rudder -", &Controls { throttle: 0.5, rudder: -0.5, ..Default::default() });
-    fly("aileron +", &Controls { throttle: 0.5, aileron: 0.5, ..Default::default() });
-    fly("aileron -", &Controls { throttle: 0.5, aileron: -0.5, ..Default::default() });
-    fly("elevator +", &Controls { throttle: 0.8, elevator: 0.5, ..Default::default() });
+    fly(
+        "rudder +",
+        &Controls {
+            throttle: 0.5,
+            rudder: 0.5,
+            ..Default::default()
+        },
+    );
+    fly(
+        "rudder -",
+        &Controls {
+            throttle: 0.5,
+            rudder: -0.5,
+            ..Default::default()
+        },
+    );
+    fly(
+        "aileron +",
+        &Controls {
+            throttle: 0.5,
+            aileron: 0.5,
+            ..Default::default()
+        },
+    );
+    fly(
+        "aileron -",
+        &Controls {
+            throttle: 0.5,
+            aileron: -0.5,
+            ..Default::default()
+        },
+    );
+    fly(
+        "elevator +",
+        &Controls {
+            throttle: 0.8,
+            elevator: 0.5,
+            ..Default::default()
+        },
+    );
     println!("spawn heading 0 means north (+Z): initial velocity = (0,0,50)");
 }

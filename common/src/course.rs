@@ -38,7 +38,10 @@ pub fn gates(terrain: &Terrain) -> Vec<Gate> {
     for i in 0..N_GATES {
         let prev = pos[(i + N_GATES - 1) % N_GATES];
         let normal = (pos[i] - prev).normalize();
-        out.push(Gate { pos: pos[i], normal });
+        out.push(Gate {
+            pos: pos[i],
+            normal,
+        });
     }
     out
 }
@@ -93,9 +96,16 @@ mod tests {
         }
         for (i, g) in a.iter().enumerate() {
             let ground = t.surface_height(g.pos.x, g.pos.z);
-            assert!(g.pos.y >= ground + GATE_MIN_AGL - 1.0, "gate {i} is in the ground");
+            assert!(
+                g.pos.y >= ground + GATE_MIN_AGL - 1.0,
+                "gate {i} is in the ground"
+            );
             assert!(g.pos.y < 500.0, "gate {i} is too high: {}", g.pos.y);
-            assert!(g.pos.length() < 1500.0, "gate {i} is off the island: {:?}", g.pos);
+            assert!(
+                g.pos.length() < 1500.0,
+                "gate {i} is off the island: {:?}",
+                g.pos
+            );
             assert!((g.normal.length() - 1.0).abs() < 1e-6);
         }
     }
@@ -106,7 +116,11 @@ mod tests {
         for i in 0..N_GATES {
             let next = g[(i + 1) % N_GATES];
             let d = (next.pos - g[i].pos).length();
-            assert!(d > 250.0, "gates {i} and {} are {d} m apart", (i + 1) % N_GATES);
+            assert!(
+                d > 250.0,
+                "gates {i} and {} are {d} m apart",
+                (i + 1) % N_GATES
+            );
             assert!(d < 1400.0, "leg {i} is {d} m, too far");
         }
     }
@@ -119,7 +133,12 @@ mod tests {
         let now = gate.pos + gate.normal * 5.0;
         assert!(crossed_gate(prev, now, &gate, GATE_RADIUS));
         // Approaching but not yet through: nothing.
-        assert!(!crossed_gate(prev, gate.pos - gate.normal * 2.0, &gate, GATE_RADIUS));
+        assert!(!crossed_gate(
+            prev,
+            gate.pos - gate.normal * 2.0,
+            &gate,
+            GATE_RADIUS
+        ));
         // Going backwards through it does not count.
         assert!(!crossed_gate(now, prev, &gate, GATE_RADIUS));
     }
@@ -128,7 +147,11 @@ mod tests {
     fn missing_the_opening_does_not_count() {
         let (_, g) = circuit();
         let gate = g[3];
-        let side = if gate.normal.abs().x > 0.5 { Vec3::Y } else { Vec3::X };
+        let side = if gate.normal.abs().x > 0.5 {
+            Vec3::Y
+        } else {
+            Vec3::X
+        };
         let offset = side * (GATE_RADIUS + 8.0);
         let prev = gate.pos - gate.normal * 20.0 + offset;
         let now = gate.pos + gate.normal * 20.0 + offset;

@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 use std::sync::{Mutex, OnceLock};
 
 use bevy::prelude::*;
-use flight_common::{ClientMsg, ServerMsg, decode, encode};
+use flight_common::{decode, encode, ClientMsg, ServerMsg};
 
 use crate::Game;
 
@@ -58,7 +58,10 @@ fn push_text(text: &str) {
 }
 
 fn drain_inbox() -> Vec<ServerMsg> {
-    inbox().lock().map(|mut q| q.drain(..).collect()).unwrap_or_default()
+    inbox()
+        .lock()
+        .map(|mut q| q.drain(..).collect())
+        .unwrap_or_default()
 }
 
 fn next_out() -> Option<String> {
@@ -134,7 +137,9 @@ mod transport {
         ws.set_onmessage(Some(on_message.as_ref().unchecked_ref()));
         on_message.forget();
 
-        let hello = encode(&ClientMsg::Hello { name: name.to_string() });
+        let hello = encode(&ClientMsg::Hello {
+            name: name.to_string(),
+        });
         let on_open = Closure::wrap(Box::new(move |_: web_sys::Event| {
             set_connected(true);
             if let Some(ws) = socket().lock().ok().and_then(|s| s.clone()) {
@@ -175,7 +180,9 @@ mod transport {
 
     pub fn open(url: &str, name: &str) -> bool {
         let url = url.to_string();
-        let hello = encode(&ClientMsg::Hello { name: name.to_string() });
+        let hello = encode(&ClientMsg::Hello {
+            name: name.to_string(),
+        });
         std::thread::spawn(move || loop {
             match tungstenite::connect(&url) {
                 Ok((mut socket, _)) => {
@@ -233,10 +240,22 @@ pub fn poll(mut game: ResMut<Game>) {
     transport::pump();
     for msg in drain_inbox() {
         match msg {
-            ServerMsg::Welcome { id, name, you, message, .. } => {
+            ServerMsg::Welcome {
+                id,
+                name,
+                you,
+                message,
+                ..
+            } => {
                 game.apply_welcome(id, name, &you, message);
             }
-            ServerMsg::Snapshot { tick, time, planes, events, .. } => {
+            ServerMsg::Snapshot {
+                tick,
+                time,
+                planes,
+                events,
+                ..
+            } => {
                 game.apply_snapshot(tick, time, &planes, &events);
             }
             ServerMsg::Pong { stamp } => {
@@ -254,7 +273,10 @@ pub fn send_input(time: Res<Time>, mut game: ResMut<Game>) {
         return;
     }
     game.last_send = now;
-    send(&ClientMsg::Input { controls: game.controls, ping: game.ping_ms });
+    send(&ClientMsg::Input {
+        controls: game.controls,
+        ping: game.ping_ms,
+    });
 }
 
 pub fn keep_alive(time: Res<Time>, mut game: ResMut<Game>) {

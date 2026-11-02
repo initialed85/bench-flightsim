@@ -10,7 +10,10 @@ fn main() {
     // Nose north, velocity 20 deg to the LEFT of the nose, wings level.
     let mut s = PlaneState::spawn(Vec3::new(0.0, 600.0, -600.0), 0.0, 50.0);
     s.vel = Vec3::new(-off.sin(), 0.0, off.cos()) * 50.0;
-    let c = Controls { throttle: 0.4, ..Default::default() };
+    let c = Controls {
+        throttle: 0.4,
+        ..Default::default()
+    };
     println!("sideslip damping check (beta should shrink toward zero):");
     for i in 0..40 {
         let (r, _) = step_plane(&mut s, &c, &t, dt, &AIRCRAFT);

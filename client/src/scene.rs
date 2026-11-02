@@ -5,7 +5,7 @@ use bevy::asset::RenderAssetUsages;
 use bevy::mesh::PrimitiveTopology;
 use bevy::prelude::*;
 use flight_common::{
-    GATE_RADIUS, GRID_N, GRID_STEP, PlaneState, Terrain, WORLD_HALF, gates, is_runway, quat_align_y,
+    gates, is_runway, quat_align_y, PlaneState, Terrain, GATE_RADIUS, GRID_N, GRID_STEP, WORLD_HALF,
 };
 
 use crate::Game;
@@ -184,7 +184,10 @@ fn terrain_mesh(terrain: &Terrain) -> Mesh {
         }
     }
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD);
+    let mut mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::RENDER_WORLD,
+    );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, pos);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, nrm);
     mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, col);
@@ -218,7 +221,10 @@ fn ring_mesh(radius: f32) -> Mesh {
         idx.extend_from_slice(&[a, b, c, a, c, d]);
     }
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD);
+    let mut mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::RENDER_WORLD,
+    );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, pos);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, nrm);
     mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, col);
@@ -236,12 +242,30 @@ fn add_box(
     tint: [f32; 4],
 ) {
     const FACES: [([f32; 3], [[f32; 3]; 4]); 6] = [
-        ([1.0, 0.0, 0.0], [[1., 0., 0.], [1., 0., 1.], [1., 1., 1.], [1., 1., 0.]]),
-        ([-1.0, 0.0, 0.0], [[0., 0., 0.], [0., 1., 0.], [0., 1., 1.], [0., 0., 1.]]),
-        ([0.0, 1.0, 0.0], [[0., 1., 0.], [0., 1., 1.], [1., 1., 1.], [1., 1., 0.]]),
-        ([0.0, -1.0, 0.0], [[0., 0., 0.], [1., 0., 0.], [1., 0., 1.], [0., 0., 1.]]),
-        ([0.0, 0.0, 1.0], [[0., 0., 1.], [1., 0., 1.], [1., 1., 1.], [0., 1., 1.]]),
-        ([0.0, 0.0, -1.0], [[0., 0., 0.], [0., 1., 0.], [1., 1., 0.], [1., 0., 0.]]),
+        (
+            [1.0, 0.0, 0.0],
+            [[1., 0., 0.], [1., 0., 1.], [1., 1., 1.], [1., 1., 0.]],
+        ),
+        (
+            [-1.0, 0.0, 0.0],
+            [[0., 0., 0.], [0., 1., 0.], [0., 1., 1.], [0., 0., 1.]],
+        ),
+        (
+            [0.0, 1.0, 0.0],
+            [[0., 1., 0.], [0., 1., 1.], [1., 1., 1.], [1., 1., 0.]],
+        ),
+        (
+            [0.0, -1.0, 0.0],
+            [[0., 0., 0.], [1., 0., 0.], [1., 0., 1.], [0., 0., 1.]],
+        ),
+        (
+            [0.0, 0.0, 1.0],
+            [[0., 0., 1.], [1., 0., 1.], [1., 1., 1.], [0., 1., 1.]],
+        ),
+        (
+            [0.0, 0.0, -1.0],
+            [[0., 0., 0.], [0., 1., 0.], [1., 1., 0.], [1., 0., 0.]],
+        ),
     ];
     for (n, corners) in FACES {
         let base = pos.len() as u32;
@@ -268,13 +292,56 @@ fn plane_mesh() -> Mesh {
     let white = [0.92, 0.93, 0.95, 1.0];
     let dark = [0.30, 0.32, 0.36, 1.0];
 
-    add_box(&mut pos, &mut nrm, &mut col, &mut idx, [-0.45, -0.40, -2.9], [0.45, 0.48, 1.7], white);
-    add_box(&mut pos, &mut nrm, &mut col, &mut idx, [-0.22, -0.22, -4.0], [0.22, 0.22, -2.9], dark);
-    add_box(&mut pos, &mut nrm, &mut col, &mut idx, [-4.9, -0.10, -1.5], [4.9, 0.10, -0.1], white);
-    add_box(&mut pos, &mut nrm, &mut col, &mut idx, [-1.8, -0.07, 1.0], [1.8, 0.07, 1.9], white);
-    add_box(&mut pos, &mut nrm, &mut col, &mut idx, [-0.07, 0.40, 1.0], [0.07, 1.6, 1.9], dark);
+    add_box(
+        &mut pos,
+        &mut nrm,
+        &mut col,
+        &mut idx,
+        [-0.45, -0.40, -2.9],
+        [0.45, 0.48, 1.7],
+        white,
+    );
+    add_box(
+        &mut pos,
+        &mut nrm,
+        &mut col,
+        &mut idx,
+        [-0.22, -0.22, -4.0],
+        [0.22, 0.22, -2.9],
+        dark,
+    );
+    add_box(
+        &mut pos,
+        &mut nrm,
+        &mut col,
+        &mut idx,
+        [-4.9, -0.10, -1.5],
+        [4.9, 0.10, -0.1],
+        white,
+    );
+    add_box(
+        &mut pos,
+        &mut nrm,
+        &mut col,
+        &mut idx,
+        [-1.8, -0.07, 1.0],
+        [1.8, 0.07, 1.9],
+        white,
+    );
+    add_box(
+        &mut pos,
+        &mut nrm,
+        &mut col,
+        &mut idx,
+        [-0.07, 0.40, 1.0],
+        [0.07, 1.6, 1.9],
+        dark,
+    );
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD);
+    let mut mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::RENDER_WORLD,
+    );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, pos);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, nrm);
     mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, col);
@@ -331,10 +398,10 @@ pub fn sync_planes(
                             Mesh3d(art.plane.clone()),
                             MeshMaterial3d(material),
                             Transform {
-                            rotation: shown.rot,
-                            translation: shown.pos,
-                            ..default()
-                        },
+                                rotation: shown.rot,
+                                translation: shown.pos,
+                                ..default()
+                            },
                         ))
                         .id();
                     game.entities.insert(id, e);
@@ -346,10 +413,10 @@ pub fn sync_planes(
                     Mesh3d(art.plane.clone()),
                     MeshMaterial3d(material),
                     Transform {
-                            rotation: shown.rot,
-                            translation: shown.pos,
-                            ..default()
-                        },
+                        rotation: shown.rot,
+                        translation: shown.pos,
+                        ..default()
+                    },
                 ))
                 .id();
             game.entities.insert(id, e);
@@ -373,8 +440,12 @@ pub fn sync_planes(
 }
 
 pub fn chase_camera(game: Res<Game>, mut cams: Query<&mut Transform, With<Camera3d>>) {
-    let Some(st) = game.local.as_ref() else { return };
-    let Ok(mut cam) = cams.single_mut() else { return };
+    let Some(st) = game.local.as_ref() else {
+        return;
+    };
+    let Ok(mut cam) = cams.single_mut() else {
+        return;
+    };
     cam.translation = st.pos + st.rot * Vec3::new(0.0, 2.4, 12.0);
     cam.rotation = st.rot;
 }

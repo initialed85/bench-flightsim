@@ -3,17 +3,19 @@
 
 use std::time::Duration;
 
-use flight_common::{ClientMsg, Controls, ServerMsg, decode, encode};
+use flight_common::{decode, encode, ClientMsg, Controls, ServerMsg};
+use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
-use futures_util::{SinkExt, StreamExt};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let url = std::env::var("FLIGHT_WS").unwrap_or_else(|_| "ws://127.0.0.1:23456/ws".into());
     let (mut ws, _) = connect_async(&url).await?;
-    ws.send(Message::text(encode(&ClientMsg::Hello { name: "smoke".into() })))
-        .await?;
+    ws.send(Message::text(encode(&ClientMsg::Hello {
+        name: "smoke".into(),
+    })))
+    .await?;
 
     let mut me = None;
     let mut gates = 0u32;
@@ -33,8 +35,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 trigger: false,
                 brake: false,
             };
-            ws.send(Message::text(encode(&ClientMsg::Input { controls, ping: 1.0 })))
-                .await?;
+            ws.send(Message::text(encode(&ClientMsg::Input {
+                controls,
+                ping: 1.0,
+            })))
+            .await?;
             sent = true;
         }
         let frame = tokio::time::timeout(Duration::from_millis(400), ws.next())
@@ -49,13 +54,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             _ => continue,
         };
         match decode::<ServerMsg>(&text)? {
-            ServerMsg::Welcome { id, name, you, message, .. } => {
+            ServerMsg::Welcome {
+                id,
+                name,
+                you,
+                message,
+                ..
+            } => {
                 me = Some(id);
                 println!("[smoke] welcome {id} {name}: {message}");
-                println!("[smoke] spawn y {:.1} speed {:.1}", you.pos().y, you.vel().length());
+                println!(
+                    "[smoke] spawn y {:.1} speed {:.1}",
+                    you.pos().y,
+                    you.vel().length()
+                );
             }
             ServerMsg::Snapshot { tick, planes, .. } => {
-                let Some(p) = planes.iter().find(|p| Some(p.id) == me) else { continue };
+                let Some(p) = planes.iter().find(|p| Some(p.id) == me) else {
+                    continue;
+                };
                 best_speed = best_speed.max(p.vel().length());
                 best_alt = best_alt.max(p.pos().y);
                 gates = p.gate;
