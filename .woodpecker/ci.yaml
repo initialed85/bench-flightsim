@@ -43,6 +43,11 @@ steps:
       # below compiles the client for wasm32 properly, which is the check that means something.
       - cargo test --workspace --exclude flight-client
       - PATH="$PWD/tools:$PATH" scripts/build.sh
+      # scripts/build.sh only builds the wasm client, unlike bench-asteroids' build.sh which builds
+      # both halves, so the server had never been compiled in release here at all. It is the thing that
+      # actually runs, so build it rather than assert on a path nothing produces (pipeline 5 failed with
+      # "ls: cannot access 'target/release/flight-server'").
+      - cargo build --release -p flight-server
       - ls -l web/flight_client_bg.wasm target/release/flight-server
 
 when:
