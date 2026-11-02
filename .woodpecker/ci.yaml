@@ -4,6 +4,21 @@
 steps:
   - name: check
     image: docker.io/library/rust:1.97.1
+    # The namespace LimitRange gives an unmarked step 1 Gi (default 1Gi / max 4Gi in
+    # clusters/dev/applications/woodpecker/limits.yaml) and this step OOMs inside it: bench-flightsim
+    # pipeline 2 died with exit 137 and "received oom kill" partway through `Compiling bevy_reflect`.
+    # The server crate uses bevy_ecs too, so even a wasm-only repo pays the full bevy graph here.
+    # Two CPUs as well as 4 Gi: rustc sizes its job count from available_parallelism, which reads the
+    # cgroup, so the old 1 CPU default was not the ceiling on parallelism that it looked like.
+    backend_options:
+      kubernetes:
+        resources:
+          requests:
+            cpu: "1"
+            memory: 1Gi
+          limits:
+            cpu: "2"
+            memory: 4Gi
     commands:
       - rustc --version
       - rustup target add wasm32-unknown-unknown
