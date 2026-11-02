@@ -1,0 +1,25 @@
+# The flight-sim bench: wasm client (flight-client) and a native WebSocket server (flight-server).
+# Its scripts/build.sh expects wasm-bindgen already on PATH, so CI fetches the prebuilt CLI
+# into tools/ first, the way the other benches do.
+steps:
+  - name: check
+    image: docker.io/library/rust:1.97.1
+    commands:
+      - rustc --version
+      - rustup target add wasm32-unknown-unknown
+      # wasm-bindgen-cli is not a rustup component and `cargo install` of it costs ~12 minutes, so CI
+      # fetches the prebuilt musl tarball into tools/ exactly like bench-asteroids' build.sh does. The
+      # version has to match the wasm-bindgen crate in Cargo.lock (0.2.129) or the glue generation
+      # fails with a version mismatch.
+      - mkdir -p tools
+      - if [ ! -x tools/wasm-bindgen ]; then curl -fsSL "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.129/wasm-bindgen-0.2.129-x86_64-unknown-linux-musl.tar.gz" -o tools/wb.tar.gz && tar -xzf tools/wb.tar.gz -C tools --strip-components=1 && rm tools/wb.tar.gz; fi
+      - PATH="$PWD/tools:$PATH"
+      - cargo fmt --check
+      - cargo test
+      - PATH="$PWD/tools:$PATH" scripts/build.sh
+      - ls -l web/generated target/release
+
+when:
+  - event: push
+    branch: master
+  - event: pull_request
